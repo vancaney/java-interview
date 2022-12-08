@@ -263,7 +263,7 @@ Map中的集合：
 		3、size属性同步时也会发生锁冲突，造成效率慢。
 ```
 
-![](/Users/why/Desktop/Pictures/7abb1aee817f45c6920ac67a8c214171.png)
+![](/Users/why/Desktop/github仓库/Pictures/7abb1aee817f45c6920ac67a8c214171.png)
 
 
 
@@ -271,7 +271,7 @@ Map中的集合：
 ConcurrentHashMap的锁策略（如下图）是为每一个哈希桶都分配一把锁，这样就只有多线程在同一个哈希桶内修改时会发生锁冲突，因为链表结构前后数据有关联，所以锁冲突大大降低了。
 ```
 
-![](/Users/why/Desktop/Pictures/8eb5fcd5ac3f47ee8b1dc4bd7548dca8.png)
+![](/Users/why/Desktop/github仓库/Pictures/8eb5fcd5ac3f47ee8b1dc4bd7548dca8.png)
 
 #### ( 3 )遍历迭代集合的方式有哪些？ 
 
@@ -439,15 +439,15 @@ Integer.class在装载时，其内部类型IntegerCache的static块即开始执�
 
   思维导图：
 
-  ![](/Users/why/Desktop/Pictures/20191127092041200.png)
+  ![](/Users/why/Desktop/github仓库/Pictures/20191127092041200.png)
 
 ### 1 . 4  io
 
 #### 	 ( 1 )常见的 io流有哪些？
 
-|                        主要io流                        |
-| :----------------------------------------------------: |
-| ![](/Users/why/Desktop/Pictures/20160522165107051.png) |
+|                           主要io流                           |
+| :----------------------------------------------------------: |
+| ![](/Users/why/Desktop/github仓库/Pictures/20160522165107051.png) |
 
 [java常用io流](https://blog.csdn.net/u013733643/article/details/123933847?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522167012788916782428687467%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=167012788916782428687467&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~sobaiduend~default-2-123933847-null-null.142^v67^control,201^v3^add_ask,213^v2^t3_esquery_v2&utm_term=java常见的io流&spm=1018.2226.3001.4187)
 
@@ -539,7 +539,7 @@ explain：作用是获取MYSQL如何执行select语句的信息，包括在selec
 
 #### (6) mysql 存储引擎有哪些， innodb myisam 存储引擎的区别 
 
-![](/Users/why/Desktop/Pictures/mysql数据引擎.png)
+![](/Users/why/Desktop/github仓库/Pictures/mysql数据引擎.png)
 
 #### 	(7) mysql 数据类型有哪些 char varchar 区别是什么 
 
@@ -553,11 +553,11 @@ explain：作用是获取MYSQL如何执行select语句的信息，包括在selec
 
 #### 	(8) mysql 的行列转换问题 
 
-|                  原数据结构如下                   |
-| :-----------------------------------------------: |
-| ![](/Users/why/Desktop/Pictures/行列转换原表.png) |
-|           **现在需要将结果转换成如下**            |
-|  ![](/Users/why/Desktop/Pictures/行列转换后.png)  |
+|                        原数据结构如下                        |
+| :----------------------------------------------------------: |
+| ![](/Users/why/Desktop/github仓库/Pictures/行列转换原表.png) |
+|                 **现在需要将结果转换成如下**                 |
+|  ![](/Users/why/Desktop/github仓库/Pictures/行列转换后.png)  |
 
 ```mysql
 SELECT  NAME AS 姓名,
