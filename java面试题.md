@@ -535,7 +535,15 @@ explain：作用是获取MYSQL如何执行select语句的信息，包括在selec
 
 #### 	(5 ) mysql 的锁具体的特性是什么
 
+相对其他数据库而言，MySQL的锁机制比较简单，最显著的特点是不同的存储引擎支持不同的锁机制。
 
+![](/Users/why/Desktop/github仓库(java面试)/Pictures/图片1.png)
+
+InnoDB默认支持行级锁。
+
+- MySQL的锁的特性大致有如下三点：
+
+![](/Users/why/Desktop/github仓库(java面试)/Pictures/图片2.png)
 
 #### (6) mysql 存储引擎有哪些， innodb myisam 存储引擎的区别 
 
@@ -595,7 +603,7 @@ SELECT NAME AS NAME,SUM(语文),SUM(数学),SUM(英语),SUM(总分) FROM (
 
 - DML：数据操纵语言。insert、delete、update。
 
-- DQL：数据查询语言。基本结构是select子句，from子句，where子句组成的查询快。
+- DQL：数据查询语言。基本结构是select子句，from子句，where子句组成的查询块。
 
 - DCL：数据控制语言。用来授予或回收访问数据库的某种特权，并控制数据库操纵事务发生的时间及效果，对数据库进行监视等。
 
