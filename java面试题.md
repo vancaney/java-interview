@@ -735,26 +735,49 @@ SELECT NAME AS NAME,SUM(语文),SUM(数学),SUM(英语),SUM(总分) FROM (
 
 #### 	(3) redis 的事务命令有哪些？ redis 事务和 mysql 事务的区别 ？
 
-```shell
-#开启事务
-multi
+**redis事务和MySQL事务的区别：**
 
-##正常输入命令
+- MySQL和Redis事务的命令区别：
 
-#提交事务
-exec
+  MySQL：
 
-#取消操作
-discard
+  ```mysql
+  - begin：开启事务。
+  - commit：提交事务，事务执行完成后对数据库的影响是永久性的。
+  - rollback：回滚事务，结束用户的事务，并撤销正在进行的所有未提交的写操作。
+  ```
 
-#redis的一次事务操作，该成功的成功，该失败的失败。
-#
-```
+  Redis：
 
-​	[redis 事务和 mysql 事务的区别](https://blog.csdn.net/weixin_41335923/article/details/124272645)
+  ```shell
+  #开启事务
+  multi
+  
+  ##正常输入命令
+  
+  #执行事务的commands队列
+  exec
+  
+  #结束事务，并清除commands队列
+  discard
+  #redis的一次事务操作，该成功的成功，该失败的失败。即redis的事务不能保证原子性。
+  #redis开启事务，执行一些列的命令，但是命令不会立即执行，而是会放在一个队列中，如果执行了exec命令，那么队列中的命令会全部执行，如果#discard，那么队列中的命令会全部取消。
+  ```
 
-4 、 redis 的主从复制有没有了解如何实现的 redis 哨兵是什么解决了什么问题。 
-​	5 、。 edis 的集群有没有搭建过如何搭建的
+- 取消事务的区别：
+
+  - MySQL事务的回滚(rollback)是指一次事务中，如果一个sql执行出错，那么所有的sql全部执行失败，全部sql执行成功整个事务才会成功。执行rollback后所有语句造成的影响消失。
+  - Redis的discard只是结束本次事务，正确的命令造成的影响仍然存在。即：
+    - 如果在一个事务中的命令出现错误，那么所有的命令都不会执行。
+    - 如果在一个事务中出现运行错误，那么正确的命令会被执行。
+
+​	[redis 事务和 mysql 事务的区别](https://blog.csdn.net/weixin_44685869/article/details/104420566?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522167072687516800182715633%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=167072687516800182715633&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~sobaiduend~default-1-104420566-null-null.142^v68^control,201^v4^add_ask,213^v2^t3_esquery_v2&utm_term=redis事务和mysql事务有什么区别&spm=1018.2226.3001.4187)
+
+#### (4) redis 的主从复制有没有了解?是如何实现的 redis ?哨兵是什么?解决了什么问题?
+
+
+
+​	5 、Redis的集群有没有搭建过如何搭建的
 ​	6 、 redis 的分布式锁有没有了解过 setnx 
 ​	7 、 red 主 s 的常用客户端你知道哪些 j edis reedisTemplate 
 四 linux操作系统
