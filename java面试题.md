@@ -786,9 +786,45 @@ SELECT NAME AS NAME,SUM(语文),SUM(数学),SUM(英语),SUM(总分) FROM (
 
 #### 	(6)Redis 的分布式锁有没有了解过 setnx 
 
-​	7 、 red 主 s 的常用客户端你知道哪些 j edis reedisTemplate 
-四 linux操作系统
-​	 1、 linux 操作系统的常用命令 
+- setnx + expire
+
+  ```java
+  /*
+  setnx：如果当前key不存在，就存入key-value，否则就什么都不做。
+  expire：设置key的生存时间，单位为秒。
+  **/
+  if (setnx(key, 1) == 1){
+      expire(key, 10)
+      try {
+          //TODO 业务逻辑
+      } finally {
+          del(key)
+      }
+  }
+  ```
+
+  
+
+[Redis的分布式锁](https://blog.csdn.net/q66562636/article/details/124739036?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522167100174816782412558274%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=167100174816782412558274&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_click~default-1-124739036-null-null.142^v68^control,201^v4^add_ask,213^v2^t3_esquery_v2&utm_term=redis分布式锁面试题&spm=1018.2226.3001.4187)
+
+#### (7)Redis的常用客户端你知道哪些 jedis、redisTemplate 
+
+- jedis：是Redis官方推荐的面向java操作Redis的客户端开发jar包
+
+- jedisPool：线程安全的网络连接池预先生成一批jedis连接对象放入连接池中，当需要对Redis进行操作时从连接池中借用jedis对象，操作完成后归还。减少资源的开销。
+
+- RedisTemplate：springboot集成Redis的客户端方式，spring框架对jedisAPI进行了高度封装。springboot还提供了redistemplate和stringRedisTemplate两个模板。第一个是需要指定数据的泛型，第二个是默认操作的都是字符串格式，通过不同类型的数据的ops执行增删改查操作。
+
+  
+
+### 四、 linux操作系统
+
+#### 	(1)linux 操作系统的常用命令 
+
+```shell
+
+```
+
 ​	2 、如何查看硬盘使用情况 
 ​	3 、如何查看内存占用情况 
 ​	4 、如何查看线程信息 ps top 
