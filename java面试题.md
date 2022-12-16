@@ -803,7 +803,6 @@ SELECT NAME AS NAME,SUM(语文),SUM(数学),SUM(英语),SUM(总分) FROM (
   }
   ```
 
-  
 
 [Redis的分布式锁](https://blog.csdn.net/q66562636/article/details/124739036?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522167100174816782412558274%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=167100174816782412558274&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_click~default-1-124739036-null-null.142^v68^control,201^v4^add_ask,213^v2^t3_esquery_v2&utm_term=redis分布式锁面试题&spm=1018.2226.3001.4187)
 
@@ -878,19 +877,59 @@ tail
 cat
 ```
 
+#### (6)linux的文件系统有没有了解过
+
+inux采用的是树形结构。linux中没有盘符，最上层目录是根目录（/），其他所有的目录都是从根目录出发而生成的。
+
+![](/Users/why/Desktop/github仓库(java面试)/Pictures/1586239342796.png)
+
+| 目录 | 介绍                                                  |
+| ---- | ----------------------------------------------------- |
+| root | 该目录为系统管理员root的home目录                      |
+| bin  | 该目录下放着经常使用的命令                            |
+| boot | 该目录放的是启动linux时的一些核心文件                 |
+| etc  | 该目录放的是系统管理所需要的配置文件和子目录          |
+| home | 普通用户的home目录                                    |
+| usr  | 默认安装软件的目录，类似Windows中的programme file目录 |
+| opt  | 主机额外安装软件访问的目录                            |
 
 
-​	6 、 1 1 nux 的文件系统有没有了解过
-五、SSM
-​	 1 、 spring
-​	 1 . 1 spring 的核心思想有哪些？ ioc aop 
-​	1 . 2 在 spring 中管理 bean 的方式有哪些？ 
-​	1 . 3 什么是依赖注入依赖注入的方式又有哪些 
+
+### 五、SSM
+
+###  (1)spring
+
+[spring面试题](https://blog.csdn.net/a745233700/article/details/80959716?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522167117977016782429747385%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fall.%2522%257D&request_id=167117977016782429747385&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~first_rank_ecpm_v1~hot_rank-1-80959716-null-null.142^v68^control,201^v4^add_ask,213^v2^t3_esquery_v2&utm_term=spring管理bean的方式&spm=1018.2226.3001.4187)
+
+#### 1 . 1 spring 的核心思想有哪些？ ioc aop 
+
+- IOC(Inverse Of Controll)：控制反转。创建对象的控制权转移给spring框架进行管理，并由spring根据配置文件去创建实例和和管理各个实例的依赖关系。对象与对象之间解耦合，也利于功能的复用。
+- AOP(Aspect Oriented Programming)：面向切面。讲那些影响了多个类的公共行为或逻辑封装到一个可重用模块，这个模块被称为切面“Aspect”，减少系统中的重复代码，降低了模块之间的耦合度，提高系统的可维护性。
+
+#### 1 . 2 在 spring 中管理 bean 的方式有哪些？ 
+
+- 使用xml的方式来声明bean的定义，spring容器在启动的时候会加载并解析这个xml，把bean装在到ioc容器中。
+- 使用@compontscan来扫描申明了@controller、@service、@repository、@component注解的类
+- 使用@configuration声明配置类，并使用@bean注解实现bean的定义，这种方式其实是xml配置方式的一种演变，是spring迈入无配置时代的里程碑。
+
+##### 以下方式了解即可
+
+- 使用@import注解，导入配置类或者普通的bean
+- 使用FectoryBean工厂bean，动态构建一个bean实例，springCloud openFeign里面的动态代理实例就是使用FectoryBean来实现的
+- 实现ImportBeanDefinition-Register接口可以动态注入bean实例，这个在springboot里面的启动注解有用到
+- 实现ImportSelector接口动态批量注入配置类或者bean对象，这个在springboot里面的自动装配机制有用到。
+
+#### 	1 . 3 什么是依赖注入？依赖注入的方式又有哪些 
+
+DI：
+
 ​	1 . 4 spring 中有哪些常用的注解？管理 beon 的注解依赖注入的注解生命周期的注解作用域的注解 
 ​	1 . 5 @ Auto 闪 ried @ Resource 注解的区别 
 ​	1 . 6 什么是 aop spring 是如何整合 aop 的，你在项目中是如何使用 aop 的 
 ​	1 . 7 spring 如何管理事务？ 
-​	1 . 8 spoing 中的代理思想 jdk 动态代理和 cglib 字节码代理的区别 	1 . 9 spoing 的 beon 的生命周期和 spring 中如何解决循环依赖的问题
+​	1 . 8 spoing 中的代理思想 jdk 动态代理和 cglib 字节码代理的区别 	
+
+​	1 . 9 spoing 的 beon 的生命周期和 spring 中如何解决循环依赖的问题
 2 、 mybatis & mybatisplus 
 ​	2 . 1 mybatis 中的核心类有哪些 
 ​	2 . 2 mybotis 框架中都用到了哪些核心的设计模式？
