@@ -921,15 +921,136 @@ inux采用的是树形结构。linux中没有盘符，最上层目录是根目�
 
 #### 	1 . 3 什么是依赖注入？依赖注入的方式又有哪些 
 
-DI：
+DI(dependency injection)：IOC的一个重点就是在程序运行时，动态的向某个对象提供他所需要的其他对象，这一点就是通过DI实现的。即应用程序在运行时依赖IOC容器来动态注入对象所需的外部依赖。而spring的DI具体是通过反射实现注入的，反射允许程序在运行时动态的生成对象，执行对象方法，改变对象的属性。
 
-​	1 . 4 spring 中有哪些常用的注解？管理 beon 的注解依赖注入的注解生命周期的注解作用域的注解 
-​	1 . 5 @ Auto 闪 ried @ Resource 注解的区别 
-​	1 . 6 什么是 aop spring 是如何整合 aop 的，你在项目中是如何使用 aop 的 
-​	1 . 7 spring 如何管理事务？ 
-​	1 . 8 spoing 中的代理思想 jdk 动态代理和 cglib 字节码代理的区别 	
+```java
+//依赖注入的类型
+/*
+1.字段注入
+这种注入方式存在三个明显缺陷：
+·对象的外部可见性：也就是脱离了Spring容器那么这个对象就不会被注入进去。
+·循环依赖：字段注入不会被检测是否出现依赖循环。比如A类中注入B类，B类中又注入了A类。
+·无法设置注入对象为final：因为final的成员变量必须在实例化时同时赋值。
+  **/
+@Autowire 
+private ExampleService exampleServiceImpl;
 
-​	1 . 9 spoing 的 beon 的生命周期和 spring 中如何解决循环依赖的问题
+/*
+2. 构造器注入
+·因为用了构造器所以保证一定可以独立使用，不依赖Spring容器。
+·可以检测循环依赖。
+·如果注入的很多，那么构造方法要写很多参数，代码结构不是很清楚。
+**/
+private ExampleService exampleServiceImpl;
+
+@Autowire
+public ExampleController (ExampleService exampleServiceImpl){
+	this.exampleServiceImpl = exampleServiceImpl;
+}
+/*
+3.setter注入
+·利用set来注入保证不依赖Spring容器。
+·每个set单独注入某个对象，便于控制，并且可以实现选择性注入。
+·可以检测循环依赖。
+**/
+private ExampleService exampleServiceImpl;
+
+@Autowire
+public setExampleServiceImpl (ExampleService exampleServiceImpl){
+	this.exampleServiceImpl = exampleServiceImpl;
+}
+```
+
+#### 	1 . 4 spring 中有哪些常用的注解？管理bean的注解、依赖注入的注解、生命周期的注解、作用域的注解 
+
+[spring的常用注解](https://blog.csdn.net/guorui_java/article/details/107347754?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522167133046016782388076842%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fall.%2522%257D&request_id=167133046016782388076842&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~first_rank_ecpm_v1~hot_rank-1-107347754-null-null.142^v68^control,201^v4^add_ask,213^v2^t3_esquery_v2&utm_term=spring的常用注解&spm=1018.2226.3001.4187)
+
+```java
+//管理bean的注解
+@Component //普通的类
+
+@Controller //表现层,其功能与@Component相同。
+
+@Service //业务层,其功能与@Component相同。
+
+@Repository //持久层,其功能与@Component相同。
+
+//依赖注入的注解
+//用于对Bean的属性变量，属性的Set方法以及构造方法进行标注，配合对应的注解处理器完成Bean的自动配置工作。默认按照Bean的类型（type）进行装配。
+@Autowired 
+//与@Autowired注解配合使用，会将默认的按照Bean类型注入改为按照Bean的实例名称装配，Bean的实例名称由@Qualifier注解的参数指定。
+@Qualifier
+/*
+作用与@Autowired一样。区别在于@Autowired默认按照Bean类型（type）注入，而@Resource默认按照Bean实例名称进行装配
+
+@Resource 中有两个重要属性：name 和 type。
+
+Spring 将 name 属性解析为 Bean 实例名称，type 属性解析为 Bean 实例类型。如果指定 name 属性，则按实例名称进行装配；如果指定 type 属性，则按 Bean 类型进行装配。
+
+如果都不指定，则先按 Bean 实例名称装配，如果不能匹配，则再按照 Bean 类型进行装配；如果都无法匹配，则抛出 NoSuchBeanDefinitionException 异常。
+**/
+@Resource
+
+//生命周期的注解
+//通过@Bean注解指定初始化和销毁方法
+@PostConstruct //初始化 
+@PreDestroy //销毁
+
+//作用域的注解
+/*
+1.Spring Bean的作用域分为四种
+
+单例（singleton）：在整个应用中，只创建bean的一个实例
+原型（prototype）：每次注入或者通过Spring应用上下文获取的时候，都会创建一个新的bean实例
+会话（session）：在web应用中，为每个会话创建一个bean实例
+请求（request）：在web应用中，为每个请求创建一个bean实例
+**/
+@Scope
+
+```
+
+#### 1 . 5 @Autowired和@Resource注解的区别 
+
+[Autowired注解与Resource注解的区别](https://blog.csdn.net/NoviceZ/article/details/120208241)
+
+- 两者用法：
+  - 两个注解的作用是一样的，都是在做bean注入，在使用过程中两个注解有时候可以交替使用。
+- 两者共同点：
+  - @Autowired和@Resource注解都可以用作bean注入
+  - 在接口只有一个实体类的时候，两个注解可以交替使用
+- 两者不同点：
+  - @Resource是Java自身的注解，@Autowired是spring的注解
+  - @Resource有两个重要的属性，name和type。如果name属性有值，则使用byName的自动注入策略，将值作为需要注入bean的名字；如果type有值，则使用byType自动注入策略，将值作为需要注入bean的类型。如果两者都不指定，这时将使用反射机制，使用byName的自动注入策略。即：@Resource默认按照名称进行匹配，名称可以通过name属性进行指定，如果没有设置name属性，，当注解写在字段上时，默认取字段名，按照名称查找，当找不到与名称匹配的bean时才会按照类型进行装配，需要注意的是，如果name属性指定了值，就只会按照名称进行匹配。
+  - @Autowired是 spring的注解，此注解只根据type进行注入，不回去匹配name，但如果根据type无法辨别注入对象时，就需要配合@Qualifier注解使用。
+
+#### 1 . 6 什么是 aop ？spring 是如何整合 aop 的？你在项目中是如何使用 aop 的？
+
+#### 1 . 7 spring 如何管理事务？ 
+
+[spring管理事务](https://blog.csdn.net/ChineseSoftware/article/details/122562677)
+
+- spring管理事务的两种方式：
+  - 编程式事务管理：侵入到了业务代码里面，但是提供了更加详细的事务管理。编程式事务使用 TransactionTemplate 或者直接使用底层的 PlatformTransactionManager。对于编程式事务管理，Spring 推荐使用 TransactionTemplate。
+  - 声明式事务管理：
+  - 基于AOP，既能管理事务，又不影响业务代码。本质是对方法前后进行拦截，然后在目标方法开始之前创建或者加入一个事务，在目标方法执行完后根据执行情况提交或者回滚事务。最大的优点就是不需要通过编程的方式管理事务，这样就不需要在业务逻辑代码中掺杂事务管理的代码，只需在配置文件中做相关的事务规则声明(或基于@Transactional的方式)，便可以将事务规则应用到业务逻辑中。
+
+#### 1 . 8 spoing 中的代理思想 jdk 动态代理和 cglib 字节码代理的区别 	
+
+- 两者都可以实现产生代理对象
+- JDK动态代理是Java自带的，cglib是第三方的
+- JDK动态代理是代理对象和目标对象之间实现同一个接口
+- cglib代理是代理对象时目标对象的子类
+
+#### 1 . 9 spring 的 bean 的生命周期和 spring 中如何解决循环依赖的问题
+
+> **单例bean：**singleton
+>
+> 随工厂启动[创建]() ==》  [构造方法]()  ==》 [set方法(注入值)]()  ==》 [init(初始化)]()  ==》 [构建完成]() ==》[随工厂关闭销毁]()
+
+> **多例bean：**prototype
+>
+> 被使用时[创建]() ==》  [构造方法]()  ==》 [set方法(注入值)]()  ==》 [init(初始化)]()  ==》 [构建完成]() ==》JVM垃圾回收销毁
+
 2 、 mybatis & mybatisplus 
 ​	2 . 1 mybatis 中的核心类有哪些 
 ​	2 . 2 mybotis 框架中都用到了哪些核心的设计模式？
