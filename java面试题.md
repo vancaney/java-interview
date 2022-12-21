@@ -893,8 +893,6 @@ inux采用的是树形结构。linux中没有盘符，最上层目录是根目�
 | usr  | 默认安装软件的目录，类似Windows中的programme file目录 |
 | opt  | 主机额外安装软件访问的目录                            |
 
-
-
 ### 五、SSM
 
 ###  (1)spring
@@ -1145,6 +1143,67 @@ Spring 将 name 属性解析为 Bean 实例名称，type 属性解析为 Bean �
 
 #### 2 . 4 mybatis 接口传递多个参数如何解决
 
+- 顺序传参：此时[mybatis](https://so.csdn.net/so/search?q=mybatis&spm=1001.2101.3001.7020)会将参数放在map集合中，以两种方式存储数据 以arg0,arg1..为键，以参数为值 以param1,param2..为key,以参数为value（这种方法不推荐，SQL层表达不直观，一旦调整顺序容易出错）
+
+  ```java
+  public interface UserMapper { 
+    User checkLogin(String username,String password); 
+  }
+  <select id="checkLogin" resultType="User"> 
+    select * from user where username=#{param1}and password=#{param1} 
+  </select>
+   //或者
+  <select id="checkLogin" resultType="User"> 
+    select * from user where username=#{arg1} and password=#{arg0} 
+  </select>
+  ```
+
+- 利用Map集合：此时可以通过#{}和${}一任意的内容获取参数值，一定要注意${}的单引号问题
+
+  ```java
+  public interface UserMapper { 
+    // 验证登录（以map集合作为参数） 
+    User checkLoginByMap(Map<String,Object> map); 
+  } 
+  <select id="checkLoginByMap" resultType="User"> 
+    select * from user where username=#{username} and password=#{password} 
+  </select>
+  ```
+
+- 利用@Param注解：此时mybatis会将这些参数放在map中，以两种方式进行存储
+
+  1：以@param注解的value属性值为键
+
+  2：以param1,param2....为键，以参数为值 此时可以通过#{}和${}访问实体类的属性名，就可以获取相应的属性值一定要注意${}的单引号问题
+
+  当接口中只有一个参数(并且没有用@Param())时候，需要在xml中添加响应的参数类型parameterType；
+
+  如果是多个参数(每个参数都是用@Param())的时候，就不会去读参数类型parameterType，
+  直接取得参数里面的值。
+
+  ```java
+  public interface UserMapper { //验证登录 
+    User checkLoginByParam(@Param("username") String username,@Param("password") String password); 
+  }
+  <select id="checkLoginByParam" resultType="User"> 
+    select * from user where username=#{username} and password=#{password} 
+  </select>
+  ```
+
+- 创建实体类： 此时可以通过#{}和${}访问实体类的属性名，就可以获取相应的属性值一定要注意${}的单引号问题（这种方法需要创建实体类，扩展性不是很好）
+
+  ```java
+  public interface UserMapper { 
+    // 添加用户信息 
+    void insertUser(User user); 
+  }
+  <insert id="insertUser"> 
+    insert into user values(null,#{username},#{password},#{age},#{gender},{email}) 
+  </insert>
+  ```
+
+  
+
 #### 2 . 5 mybatis #{}和${}的区别是什么？
 
 ${}是字符串替换，#{}是预处理；使用#{}可以有效防止sql注入，提高系统安全性。
@@ -1153,12 +1212,76 @@ Mybatis在处理${}时，就是把${}直接替换成变量的值；而Mybatis在
 
 #### 2 . 6 mybatis 前后字段不一致怎么解决？ resultType resultMap 之间的区别 
 
-​	2 . 7 mybatis 如何开启批处理 
-​	2 . 8 有没有了解过 mybotis 的一级缓存二级缓存是如何实现的？ 
-​	2 . 9 mybotis 中延时加载策略有没有了解过怎么实现的 
-​	2 . 10 mybatis 的动态 sql 是如何实现的？ 
-​	2 . 11 mybotisplus 中的插件有哪些具体怎么用的分页插件 sql 性能分析插件乐观锁插件 
-3 、 springmVc
+- 为字段起别名，使之与属性名一致
+
+  ```xml
+  <select id="getEmpByEmpIdOld" resultType="Emp">
+          select emp_id empId,emp_name empName,age,gender from t_emp where emp_id = #{empId}
+  </select>
+  ```
+
+- 可以在MyBatis的核心配置文件中设置一个全局配置、mapUnderscoreT-oCamelCase，可以在查询表中数据时，自动将_类型的字段名转换为驼峰。
+
+  例如：字段名user_name，设置了mapUnderscoreToCamelCase，此时字段名就会转换为userName
+
+  [注意：此方法仅适用于字段名的下划线转化为驼峰后恰好与类的属性名一致的情况]()
+
+  ```xml
+  <settings>
+          <!--将下划线映射为驼峰-->
+          <setting name="mapUnderscoreToCamelCase" value="true"/>
+  </settings>
+  
+  <select id="getEmpByEmpIdOld" resultType="Emp">
+          select * from t_emp where emp_id = #{empId}
+  </select>
+  ```
+
+- 使用resultmap来处理
+
+  resultMap：设置自定义的映射关系
+  id：唯一标识
+  type：处理映射关系的实体类的类型
+  常用的标签：
+  id：处理主键和实体类中属性的映射关系
+  result：处理普通字段和实体类中属性的映射关系
+  association：处理多对一的映射关系（处理实体类类型的属性）
+  collection：处理一对多的映射关系（处理集合类型的属性）
+  column：设置映射关系中的字段名，必须是sql查询出的某个字段
+  property：设置映射关系中的属性的属性名，必须是处理的实体类类型中的属性名
+
+  ```xml
+      <resultMap id="empResultMap" type="Emp">
+          <id column="emp_id" property="empId"></id>   
+          <result column="emp_name" property="empName"></result>
+          <result column="age" property="age"></result>
+          <result column="gender" property="gender"></result>
+      </resultMap>
+   
+      <!--Emp getEmpByEmpId(@Param("empId") Integer empId);-->
+      <select id="getEmpByEmpId" resultMap="empResultMap">
+          select * from t_emp where emp_id = #{empId}
+      </select>
+  ```
+
+  
+
+#### 2 . 7 mybatis 如何开启批处理？
+
+[Mybatis批处理](https://blog.csdn.net/csucsgoat/article/details/116724221?ops_request_misc=&request_id=&biz_id=102&utm_term=mybatis%20如何开启批处理？&utm_medium=distribute.pc_search_result.none-task-blog-2~all~sobaiduweb~default-1-116724221.142^v68^control,201^v4^add_ask,213^v2^t3_esquery_v2&spm=1018.2226.3001.4187)
+
+
+
+#### 2 . 8 有没有了解过 mybatis 的一级缓存二级缓存是如何实现的？ 
+
+#### 2 . 9 mybatis 中延时加载策略有没有了解过怎么实现的 ？
+
+#### 2 . 10 mybatis 的动态 sql 是如何实现的？ 
+
+#### 2 . 11 mybatisplus 中的插件有哪些？具体怎么用的？分页插件、 SQL性能分析插件、乐观锁插件 
+
+### 3 、 springmVc
+
 ​	 3 . 1 springmvc 中的 mvc 思想是什么 
 ​	3 . 2 springmvc 的执行流程 
 ​	3 . 3 springmvc 的常用注解有哪些 
@@ -1170,7 +1293,9 @@ Mybatis在处理${}时，就是把${}直接替换成变量的值；而Mybatis在
 ​	5 、 springb 。。 t 配置文件有哪两种类型优先级是什么 
 ​	6 、 springboot 常见的启动器（ starter )有哪些？如何自定义启动器 
 ​	7 、 springboot 中如何开启监控如何配置热部署 s 、＠ Restcontroller 和＠ controller 之间的区别是什么
-六、Springcloud 
+
+### 六、Springcloud 
+
 ​	1 、 springoloud 有哪些常用的组件这些组件的区别有哪些 
 ​	2 、 5 pringcloud 中的常见的注册中心有哪些 eureka nacos consul zookeeper 之间的区别是什么 
 ​	3 、什么是 CAP 理论 CP Ap 原则 
@@ -1178,14 +1303,16 @@ Mybatis在处理${}时，就是把${}直接替换成变量的值；而Mybatis在
 ​	5 、 feign openfeign 有没有了解过两者之间的区别是什么？ 
 ​	6 、 5 pringoloud 中的容错组件有哪些服务降级如何实现服务熔断是什么断路器的原理是什么 
 ​	7 、 springcloud 配置中心有哪些如何实现的
-七、rabbitmq 
+
+### 七、rabbitmq 
+
 ​	1 、 rabbitmq 的作用是什么 
 ​	2 、rabbitmq  中常见的消息模型有哪些 
 ​	3 、rabbitmq  AMQ协议是什么
-4、理解如何避免重复消费
-5、如何保证消息的可靠性投递
-6、如何保证消息消费的幂等性
-7、死信队列有没有了解过 
+​	4、理解如何避免重复消费
+​	5、如何保证消息的可靠性投递
+​	6、如何保证消息消费的幂等性
+​	7、死信队列有没有了解过 
 ​	8 、消息的发布确认机制有没有了解 
 ​	9 、什么是延迟队列 le 、。。 b bitmq 集群有没有搭建镜像队列是什么
 ​	分布式事务的实现方式有哪些？seata 可靠消息最终一致性需要
