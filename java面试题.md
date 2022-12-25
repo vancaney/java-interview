@@ -1274,13 +1274,188 @@ Mybatis在处理${}时，就是把${}直接替换成变量的值；而Mybatis在
 
 #### 2 . 8 有没有了解过 mybatis 的一级缓存二级缓存是如何实现的？ 
 
+
+
 #### 2 . 9 mybatis 中延时加载策略有没有了解过怎么实现的 ？
+
+
 
 #### 2 . 10 mybatis 的动态 sql 是如何实现的？ 
 
+```xml
+<!--
+< sql >
+定义SQL片段：抽取公共的SQL语句  
+sql标签的作用是提取公共的sql代码片段
+sql id属性：唯一标识
+include refid属性：参照id
+-->
+<sql id="productSql">
+    p_id pid,t_id tid,p_name name,p_time time,p_price price ,
+    p_state state ,p_image image, p_info info,isdel del
+</sql>
+<!-- 引用片段 -->
+<select id="selectProductByCondition" resultType="product">
+        select  <include refid="p_col"/>  from product
+</select>
+
+<!--
+< if >
+if标签的作用适用于条件判断
+test 属性：判断条件(必填)
+注意：
+    1、在test中获取属性值的时候，不需要加上#{},在sql语句中获取属性值要加上#{}
+    2、在sql语句中进行使用特殊字符，最好不要使用 > 或者 <,应该使用 &gt;  &lt;
+-->
+<select id="selectByCondition" resultType="product">
+    select <include refid="productSql"/> from product  where 1 = 1
+    <if test="name != null">
+        and p_name like concat('%',#{name},'%')
+    </if>
+    <if test="time != null">
+        and p_time  &gt; #{time}
+    </if>
+    <if test="price != null">
+        and p_price &gt; #{price}
+    </if>
+    <if test="state != null">
+        and p_state &gt; #{state}
+    </if>
+</select>
+
+<!--
+where标签用于添加where条件
+特点:
+    1、如果where有条件自动加上where关键字，如果没有则不会where关键字
+    2、会自动去除前面的and或者or等关键字
+-->
+<select id="selectByCondition" resultType="product">
+    select <include refid="productSql"/> from product
+    <where>
+        <if test="name != null">
+            and p_name like concat('%',#{name},'%')
+        </if>
+        <if test="time != null">
+            and p_time  &gt; #{time}
+        </if>
+        <if test="price != null">
+            and p_price &gt; #{price}
+        </if>
+        <if test="state != null">
+            and p_state &gt; #{state}
+        </if>
+    </where>
+</select>
+
+<!--  
+set标签用于添加修改的字段值
+特点:
+    1、如果set有条件自动加上set关键字，如果没有则不会set关键字
+    2、会自动去除后面的.
+-->
+<update id="updateByCondition">
+    update product
+    <set>
+        <if test="name != null">
+            p_name = #{name},
+        </if>
+        <if test="time != null">
+            p_time = #{time},
+        </if>
+        <if test="state != null">
+            p_state = #{state},
+        </if>
+        <if test="price != null">
+            p_price = #{price},
+        </if>
+        p_id = #{pid}
+    </set>
+    where p_id = #{pid}
+</update>
+
+<!--
+    choose、when、otherwise标签用于多值判断使用类似于java中的switch...case
+-->
+<select id="selectOrderByCondition" resultType="product">
+    select <include refid="productSql"/> from product  order by
+    <choose>
+        <when test="price != null">
+            p_price desc
+        </when>
+        <when test="time != null">
+            p_time desc
+        </when>
+        <when test="state != null">
+            p_state desc
+        </when>
+        <otherwise>
+            p_id desc
+        </otherwise>
+    </choose>
+</select>
+
+<!--
+trim:用灵活的定义任意的前缀和后缀，以及覆盖多余前缀和后缀
+< trim prefix="" suffix="" prefixOverrides="" suffixOverrides="" >代替< where > 、< set >
+prefix 前缀
+suffix 后缀
+prefixOverrides 前缀覆盖
+suffixOverrides 后缀覆盖
+-->
+<update id="updateByCondition">
+    update product
+    <trim prefix="set" suffixOverrides=",">
+        <if test="name != null">
+            p_name = #{name},
+        </if>
+        <if test="time != null">
+            p_time = #{time},
+        </if>
+        <if test="state != null">
+            p_state = #{state},
+        </if>
+        <if test="price != null">
+            p_price = #{price},
+        </if>
+        p_id = #{pid}
+    </trim>
+    where p_id = #{pid}
+</update>
+
+<!--
+ foreach 标签的作用是遍历集合或者数组
+参数	描述	取值
+collection	容器类型	list、array、map(可以在形参上加注解改变名称)
+open	起始符	(
+close	结束符	)
+separator	分隔符	,
+index	下标号	从0开始，依次递增
+item	当前项	任意名称（循环中通过 #{任意名称} 表达式访问）
+-->
+<!-- insert into 表名  (字段名1,字段名2,...)  values (值1,...),(值1,...) ,(值1,...)  -->
+<insert id="insertProduct">
+    insert into product (p_name,p_time,p_state,p_price) values
+    <foreach collection="productList" item="product" separator=",">
+        (#{product.name},#{product.time},#{product.state},#{product.price})
+    </foreach>
+</insert>
+
+<!-- delete from 表名 where p_id in (id1,id2,..)   -->
+<delete id="deleteProduct">
+    delete from product where p_id in
+    <foreach collection="ids" item="id" open="(" close=")" separator=",">
+        #{id}
+    </foreach>
+</delete>
+```
+
+
+
 #### 2 . 11 mybatisplus 中的插件有哪些？具体怎么用的？分页插件、 SQL性能分析插件、乐观锁插件 
 
-### 3 、 springmVc
+
+
+### 3 、springmVc
 
 ​	 3 . 1 springmvc 中的 mvc 思想是什么 
 ​	3 . 2 springmvc 的执行流程 
@@ -1306,8 +1481,24 @@ Mybatis在处理${}时，就是把${}直接替换成变量的值；而Mybatis在
 
 ### 七、rabbitmq 
 
-​	1 、 rabbitmq 的作用是什么 
-​	2 、rabbitmq  中常见的消息模型有哪些 
+#### 1 、rabbitmq 的作用是什么 ？
+
+rabbitmq是什么：MQ全称 Message Queue（[消息队列](https://so.csdn.net/so/search?q=消息队列&spm=1001.2101.3001.7020)），是在消息的传输过程中保存消息的容器。多用于分布式系统之间进行通信，abbitmq是一款开源的，Erlang编写的，消息队列中间件； 最大的特点就是消费并不需要确保提供方存在,实现了服务之间的高度解耦 
+
+rabbitmq的作用：
+
+1. 服务间解耦
+
+2. 实现异步通信
+
+3. 流量削峰
+
+   主要实现了消费者和生产者之间的解耦，发送异步消息，高并发访问解决流量削峰的问题。实现高性能，高可用，可伸缩和最终一致性的框架。是大型分布式系统不可缺少的中间件。
+
+   常见的使用场景：用户订单，库存处理；用户注册，发送手机短信邮件；商品秒杀和抢购等...
+
+#### 2 、rabbitmq  中常见的消息模型有哪些 
+
 ​	3 、rabbitmq  AMQ协议是什么
 ​	4、理解如何避免重复消费
 ​	5、如何保证消息的可靠性投递
