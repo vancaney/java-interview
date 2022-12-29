@@ -1453,28 +1453,414 @@ item	当前项	任意名称（循环中通过 #{任意名称} 表达式访问）
 
 #### 2 . 11 mybatisplus 中的插件有哪些？具体怎么用的？分页插件、 SQL性能分析插件、乐观锁插件 
 
+```java
+<!--MybatisPlus内置分页插件-->
+<!-- 配置SqlSessionFactoryBean   -->
+<bean id="sqlSessionFactory" class="com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean">
+       ......
+    <!-- 添加插件配置 -->
+    <property name="plugins" ref="plusInterceptor"></property>
+</bean>
 
 
-### 3 、springmVc
+<!--MybatisPlus插件-->
+<bean id="plusInterceptor" class="com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor">
+    <property name="interceptors">
+        <list>
+            <!--分页插件-->
+            <bean class="com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor"/>
+        </list>
+    </property>
+</bean>
+              
+//测试分页查询
+@Test
+public void testPage(){
+    Page<User> page = new Page<>(1,3);
+    userMapper.selectPage(page, null);
+    //page中包含了分页的相关信息
+    System.out.println(page);
+    List<User> userList = page.getRecords();
+    userList.forEach(System.out::println);
+}
 
-​	 3 . 1 springmvc 中的 mvc 思想是什么 
-​	3 . 2 springmvc 的执行流程 
-​	3 . 3 springmvc 的常用注解有哪些 
-​	3 . 4 springmvc 如何进行异常处理 
-​	3 . 5 springmv 。如何配置拦截器拦截器和过滤器之间的区别是什么？六、 springboot 
-​	1 、什么是 5 pringboot spr 主 ngboot 和 spring 之间有什么区别 	2 、什么是微服务微服务和 springb 。。 t 之间的区别是什么 
-​	3 、 springboot 有哪些常用的注解 
-​	4 、 springbcot 如何开启自动配置 
-​	5 、 springb 。。 t 配置文件有哪两种类型优先级是什么 
-​	6 、 springboot 常见的启动器（ starter )有哪些？如何自定义启动器 
-​	7 、 springboot 中如何开启监控如何配置热部署 s 、＠ Restcontroller 和＠ controller 之间的区别是什么
+<!--MybatisPlus乐观锁插件-->
+<!-- 配置SqlSessionFactoryBean   -->
+<bean id="sqlSessionFactory" class="com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean">
+       ......
+    <!-- 添加插件配置 -->
+    <property name="plugins" ref="plusInterceptor"></property>
+</bean>
+
+
+<!--MybatisPlus插件-->
+<bean id="plusInterceptor" class="com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor">
+    <property name="interceptors">
+        <list>
+            <!--乐观锁插件-->
+            <bean class="com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor"/>
+        </list>
+    </property>
+</bean>
+              
+@Version
+private Integer version;
+
+//乐观锁(更新成功(单线程演示))
+@Test
+public void testLock1(){
+    User user = userMapper.selectById(1L);
+    user.setName("zhangsan");
+    user.setAge(30);
+    userMapper.updateById(user);
+}
+//乐观锁(更新失败(多线程演示))
+@Test
+public void testLock2(){
+    //模拟线程1
+    User user = userMapper.selectById(1L);
+    user.setName("zhangsan");
+    user.setAge(30);
+
+    //线程1还未来得及更新，模拟线程2执行，此时线程2成功更新，并将version+1
+    User user1 = userMapper.selectById(1L);
+    user1.setName("李四");
+    user1.setAge(31);
+    userMapper.updateById(user1);
+
+    //线程1此时执行，但是无法更新成功，因为version版本与查询版本不一致
+    userMapper.updateById(user);
+}
+```
+
+
+
+### 3 、springMVC
+
+#### 3 . 1 springmvc 中的 mvc 思想是什么 ?
+
+springMVC：springMVC属于SpringFrameWork的后续产品，已经融合在Spring Web Flow里面。Spring框架提供了构建Web应用程序的全功能MVC模块。会用Spring可插入的MVC框架，从而在使用Spring进行web开发时，可以选择使用spring的Spring MVC框架。
+
+ mvc 思想：MVC是模型([model](https://so.csdn.net/so/search?q=model&spm=1001.2101.3001.7020))－视图(view)－控制器(controller)的缩写 ，是一种软件设计思想，主要作用是解决应用开发的耦合性，将应用的输入，控制，输出进行强制解耦。
+
+Model：即业务模型，负责完成业务中的数据通信处理，对应项目中的service和dao。
+
+view：视图，渲染数据，生成页面，对应项目中的jsp。
+
+controller：控制器，直接对接请求，控制MVC流程，调度模型，选择视图。对应项目中的controller。
+
+#### 3 . 2 springmvc 的执行流程
+
+1.  用户发起一个请求，请求会来到前端控制器dispatcherServlet；
+2. dispatcherServlet收到请求后，调用处理器映射器HandlerMapping，请求获取Handler；
+3. 处理器映射器根据请求URL找到具体的处理器，生成处理器对象及处理器拦截器（如果有则生成）一并返回给dispatcherServlet；
+4. dispatcherServlet会调用对应的HandlerAdapter处理器适配器；
+5. HandlerAdapter经过适配调用具体处理器（hander后端控制器）；
+6. Handler执行完成后会返回ModelAndView；
+7. HandlerAdapter将Handler执行结果ModelAndView返回给DispatcherServlet；
+8. DispatcherServlet将ModelAndView传给ViewResolver视图解析器进行解析；
+9. ViewResolver解析后返回具体的view；
+10. DispatcherServlet对view进行视图渲染（将数据模型填充到视图中）；
+11. DispatcherServlet响应用户
+
+| springmvc 的执行流程                                         |
+| ------------------------------------------------------------ |
+| ![](/Users/why/Desktop/github仓库(java面试)/Pictures/springmvc.png) |
+
+#### 	3 . 3 springmvc 的常用注解有哪些?
+
+```java
+/**
+ *  @RequestMapping注解:表示请求的映射路径
+ *      value  :表示请求路径
+ *      method :表示请求方式（restful）
+ *      params :表示请求参数(必填)
+ *
+ *      headers：表示请求头信息
+ *      consumes：请求的MIME配置    text/html   application/json
+ *      produces：响应的MIME配置
+ */
+@RequestMapping(value = {"/test01","/test001"},
+                method= RequestMethod.POST,params={"name","age"})
+public String test01(String name,int age){
+    System.out.println(name);
+    System.out.println(age);
+    return "success";
+}
+
+/**
+*  @RequestParam注解：作用就是把请求中的指定名称的参数传递给控制器中的形参赋值
+*   value： 当请求参数与接收的参数不一致，通过value指定
+*   required：是否设置为必填参数。（默认为true）
+*   defaultValue：参数的默认值(在没有传递参数的时候生效)
+*/
+@RequestMapping("/test02")
+public String test02(@RequestParam(value = "username",required=true,defaultValue="cxk")
+                     String name){
+    System.out.println(name);
+    return "success";
+}
+
+/**
+* @PathVariable   获取路径参数
+*    /test03/{id}
+*    @PathVariable("id") int id
+*
+*/
+@RequestMapping("/test03/{id}")
+public String test03(@PathVariable("id") int id){
+    System.out.println(id);
+    return "success";
+}
+
+/**
+*@ResponseBody作用：将方法的返回值类型转换成json字符串，返回给前端
+*可以加在方法上，也可以加在类上
+*@RestController
+*Controller类上加了@RestController注解，等价于在类中的每个方法上都加了@ResponseBody
+*@RestController = @Controller + @ResponseBody
+*@RequestBody作用：将前端传递的`Json格式`的字符串自动转换为java对象
+*/
+```
+
+#### 3 . 4 springmvc 如何进行异常处理 
+
+
+
+#### 3 . 5 springmvc如何配置拦截器?拦截器和过滤器之间的区别是什么？
+
+```java
+//定义拦截器 
+//作用：抽取handler中的冗余功能，类似于过滤器
+//执行顺序： preHandle--postHandle--afterCompletion
+public class LoginInterceptor implements HandlerInterceptor { //AOP
+    @Override
+    public boolean preHandle(javax.servlet.http.HttpServletRequest request, javax.servlet.http.HttpServletResponse response, Object handler) throws Exception {
+        System.out.println("进入到Handler之前执行【进行拦截操作】");
+
+        HttpSession session = request.getSession();
+        Object loginUser = session.getAttribute("loginUser");
+        if(loginUser == null){
+            response.sendRedirect(request.getContextPath()+"/pages/login.jsp");
+            return false;
+        }
+        return true; //是否放行    false表示不放行   true放行
+    }
+
+    @Override
+    public void postHandle(javax.servlet.http.HttpServletRequest request, javax.servlet.http.HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+        System.out.println("进入到Handler之后执行【进行后续操作】");
+    }
+
+    @Override
+    public void afterCompletion(javax.servlet.http.HttpServletRequest request, javax.servlet.http.HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        System.out.println("当请求成功之后数据渲染完成执行【资源释放】");
+    }
+}
+
+<!--  SpringMVC拦截器配置(可以设置多个拦截器，顺序有关系，从前往后依次过滤)-->
+<mvc:interceptors>
+    <mvc:interceptor>
+        <!-- 设置拦截的路径 (可以设置多个) /* 只能拦截/下的路径，不能拦截子路径  /**表示所有请求 -->
+        <mvc:mapping path="/**"/>
+        <!--  排除拦截的路径  (可以设置多个) -->
+        <mvc:exclude-mapping path="/user/login"/>
+        <bean class="com.qf.controller.LoginInterceptor"></bean>
+    </mvc:interceptor>
+</mvc:interceptors>
+```
+
+拦截器和过滤器的区别：
+
+- 使用范围不同：过滤器（Filter）是servlet规范规定的，只能用于web程序中。而拦截器既可以用于web程序，也可以用于application，swing程序中。
+- 规范不同：过滤器是在servlet规范中定义的，是servlet容器支持的。而拦截器是spring容器内的，是spring框架支持的。
+- 使用的资源不同：同其他的代码块一样，拦截器也是一个spring组件，归spring管理，配置在spring文件中，因此能使用spring 里面的任何资源、对象。如service对象，数据源，事务管理等。通过ioc注入到拦截器中即可。而过滤器就不行。
+- 深度不同：过滤器只在servlet前后起作用，而拦截器能深入到方法前后，异常抛出前后等。因此拦截器的使用具有更大的弹性，所以在spring框架的程序中，优先使用拦截器。
+
+### 六、 springboot 
+
+#### 1 、什么是 springboot？springboot 和 spring 之间有什么区别 ？	
+
+springboot就是spring开源框架下的一个子项目，是spring一站式的解决方案，是作为spring的脚手架框架。以达到快速构建项目、预置三方配置、开箱即用的目的。springboot有如下优点：
+
+- 简化配置，实现自动化配置
+- 提供maven极简配置，各种便捷的starter启动器。
+- 基于spring构建，是开发者快速入门，门槛很低。
+- 内置Tomcat服务器，springboot可以创建独立运行的应用而不依赖于容器。
+- 为微服务springcloud奠定了基础，使得微服务的构建变得简单。
+
+spring和springboot的区别：
+
+spring是一个生态体系，包括spring framework，spring boot，spring cloud等。spring最初利用“工厂模式”和“代理模式”解耦应用组件，收到广泛好评，然后发现每次开发都要写很多样板代码，为了简化流程，于是开发出了一些“懒人”整合包，就是springboot。
+
+#### 2 、什么是微服务？微服务和 springboot 之间的区别是什么 
+
+#### 3 、 springboot 有哪些常用的注解 
+
+@SpringBootApplication 声明soringboot项目
+
+@Configuration  配置类
+
+@EnableAutoConfiguration  开启自动配置
+
+@PropertySource("classpath:index.properties") 加载自定义配置文件
+
+@ConfigurationProperties(prefix = "") 读取配置文件中值加载到对应类
+
+@ComponentScan 包扫描
+
+@Bean 向spring容器注入bean
+
+@Value 获取配置文件中值
+
+#### 4 、 springboot 如何开启自动配置
+
+####  
+
+#### 5 、 springboot 配置文件有哪两种类型优先级是什么 ？
+
+yml，properties
+
+application.properties 优先级更好，会先读它，若它没有，再去读yml中的值。
+
+#### 6 、 springboot 常见的启动器（ starter )有哪些？如何自定义启动器
+
+***\*Spring Boot的常用starter\****
+
+​    ·spring-boot-starter-web
+
+​        -用于整合SpringMVC
+
+​    ·spring-boot-starter-test
+
+​        -用于整合JUnit及相关测试环境
+
+​    ·spring-boot-starter-freemarker
+
+​        -使用MybatisPlusGenerator时将需要
+
+​    ·spring-boot-starter-validation
+
+​        -用于整合HibernateValidator
+
+​        -检验请求参数的有效性
+
+​    ·spring-boot-starter-security
+
+​        -用于整合Spring Security
+
+​    ·spring-boot-starter-thymeleaf
+
+​        -用于整合Thymeleaf
+
+​        -仅当“非响应正文”时使用
+
+​    ·spring-boot-starter-data-redis
+
+​        -用于整合Spring Data Redis
+
+​        -处理项目中使用Redis缓存数据
+
+​    ·spring-boot-starter-data-elasticsearch
+
+​        -用于整合SpringData ElasticSearch
+
+​    -处理项目中使用ElasticSearch实现搜索功能
+
+​    ***\*SpringCloud服务发现框架的starter\****
+
+​    ·ospring-cloud-starter-netflix-eureka-server
+
+​        -用于整合SpringCloud中的Eureka服务器端 ospring-cloud-starter-netflix-eureka-client
+
+​        -用于整合SpringCloud中的Eureka客户端
+
+​        -提示:如果你使用的“服务发现框架”不是Eureka，请更换为你使用的
+
+​    ***\*SpringCloud网关的starter\****
+
+​    ·spring-cloud-starter-netflix-zuul
+
+​        -用于整合SpringCloud中的Zuul一实现网关路由等功能
+
+​        -提示:如果你使用的“网关框架”不是Zuul，请更换为你使用的
+
+​    ·mybatis-spring-boot-starter
+
+​        -用于整合Mybatis
+
+​        -由于不是SpringBoot团队开发的，所以命名风格略有不同
+
+​    ·mybatis-plus-boot-starter
+
+​        -用于整合MybatisPlus
+
+​        -由于不是SpringBoot团队开发的，所以命名风格略有不同
+
+​    ·pagehelper-spring-boot-starter
+
+​        -用于整合PageHelper -处理Mybatis查询分页
+
+​        -由于不是SpringBoot团队开发的，所以命名风格略有不同 
+
+[springboot自定义启动器](https://blog.csdn.net/syc000666/article/details/127439182)
+
+#### 7 、 springboot 中如何开启监控？如何配置热部署？
+
+
+
+#### 8 、＠ Restcontroller 和＠ controller 之间的区别是什么
+
+@RestController比@Controller多了一个注解，就是@ResponseBody，换言之，@RestControler = @Controller + @ResponseBody
+
+因为@RestController多了@ResponseBody注解，而@ResponseBody注解主要用于返回json格式数据，所以主要区别让方法return的数据直接变成JSON数据。
 
 ### 六、Springcloud 
 
-​	1 、 springoloud 有哪些常用的组件这些组件的区别有哪些 
-​	2 、 5 pringcloud 中的常见的注册中心有哪些 eureka nacos consul zookeeper 之间的区别是什么 
-​	3 、什么是 CAP 理论 CP Ap 原则 
-​	4 、负载均衡的组件是什么负载均衡的配置策略有哪些 
+#### 1 、 springCloud 有哪些常用的组件？这些组件的区别有哪些 
+
+[Eureka](https://so.csdn.net/so/search?q=Eureka&spm=1001.2101.3001.7020): 注册中心, 服务注册和发现
+
+[Ribbon](https://so.csdn.net/so/search?q=Ribbon&spm=1001.2101.3001.7020): 负载均衡, 实现服务调用的负载均衡
+
+Hystrix: 熔断器
+
+Feign: 远程调用
+
+Gateway: 网关
+
+Spring Cloud Config: 配置中心
+
+#### 2 、 springcloud 中的常见的注册中心有哪些？ eureka nacos consul zookeeper 之间的区别是什么 
+
+常见的注册中心：eureka(netfix),zookeeper(java),consul(Go),nacos(java阿里巴巴)
+
+[eureka nacos consul zookeeper 之间的区别](https://blog.csdn.net/weixin_31351409/article/details/117094654)
+
+#### 3 、什么是 CAP 理论？ CP、AP原则 
+
+CAP理论是指在一个分布式系统中，一致性（Consistency）、可用性（Availability）、分区容错性（Partition tolerance）。这三个要素最多同时实现两个，不可三者兼顾。
+
+**一致性（Consistency）**：所有节点在同一时间的数据完全一致。对于一致的程度不同可以分为强，弱，最终一致性。
+
+**1）强一致性**：对于关系型数据库，要求更新过的数据能被后续的访问都能看到。
+
+**2）弱一致性**：如果能容忍后续的部分或者全部访问不到。
+
+**3）最终一致性**：经过一段时间能访问到更新后的数据。
+
+**可用性（Availability）**：服务一直可用，而且是正常响应时间。好的可用性主要是指系统能够很好的为用户服务，不出现用户操作失败或者访问超时等用户体验不好的情况。
+
+**分区容错性（Partition tolerance）**：遇到某节点或网络分区故障的时候，仍然能够对外提供满足一致性和可用性服务。
+
+（1）满足CA舍弃P（单点集群，满足一致性可用性的系统，扩展能力不强），也就是满足一致性和可用性，舍弃容错性。但是这也就意味着你的系统不是分布式的了，因为涉及分布式的想法就是把功能分开，部署到不同的机器上。
+
+（2）满足CP舍弃A（满足一致性和容错性系统，性能不高），也就是满足一致性和容错性，舍弃可用性。如果你的系统允许有段时间的访问失效等问题，这个是可以满足的。就好比多个人并发买票，后台网络出现故障，你买的时候系统就崩溃了。
+
+（3）满足AP舍弃C（满足可用性、容错性的系统，对一致性要求低一些。），也就是满足可用性和容错性，舍弃一致性。这也就是意味着你的系统在并发访问的时候可能会出现数据不一致的情况。
+
+#### 4 、负载均衡的组件是什么负载均衡的配置策略有哪些 
+
 ​	5 、 feign openfeign 有没有了解过两者之间的区别是什么？ 
 ​	6 、 5 pringoloud 中的容错组件有哪些服务降级如何实现服务熔断是什么断路器的原理是什么 
 ​	7 、 springcloud 配置中心有哪些如何实现的
@@ -1497,13 +1883,66 @@ rabbitmq的作用：
 
    常见的使用场景：用户订单，库存处理；用户注册，发送手机短信邮件；商品秒杀和抢购等...
 
-#### 2 、rabbitmq  中常见的消息模型有哪些 
+#### 2 、rabbitmq中常见的消息模型有哪些 
 
-​	3 、rabbitmq  AMQ协议是什么
-​	4、理解如何避免重复消费
-​	5、如何保证消息的可靠性投递
-​	6、如何保证消息消费的幂等性
-​	7、死信队列有没有了解过 
-​	8 、消息的发布确认机制有没有了解 
-​	9 、什么是延迟队列 le 、。。 b bitmq 集群有没有搭建镜像队列是什么
-​	分布式事务的实现方式有哪些？seata 可靠消息最终一致性需要
+- 基本消费模型：
+
+  ![](/Users/why/Desktop/github仓库(java面试)/Pictures/d43aaa7364934664affdbd5f27e05612.png)
+
+  - P（producer/ publisher）：生产者，一个发送消息的用户应用程序。
+  - C（consumer）：消费者，消费和接收有类似的意思，消费者是一个主要用来等待接收消息的用户应用程序
+  - 队列（红色区域）：rabbitmq内部类似于邮箱的一个概念。虽然消息流经rabbitmq和你的应用程序，但是它们只能存储在队列中。队列只受主机的内存和磁盘限制，实质上是一个大的消息缓冲区。许多生产者可以发送消息到一个队列，许多消费者可以尝试从一个队列接收数据。
+
+- work消息模型：
+
+  ![](/Users/why/Desktop/github仓库(java面试)/Pictures/20181028163718326.png)
+
+  - 工作队列，又称任务队列。主要思想就是避免执行资源密集型任务时，必须等待它执行完成。相反我们稍后完成任务，我们将任务封装为消息并将其发送到队列。 在后台运行的工作进程将获取任务并最终执行作业。当你运行许多工人时，任务将在他们之间共享，但是一个消息只能被一个消费者获取。
+    总之：让多个消费者绑定到一个队列，共同消费队列中的消息。队列中的消息一旦消
+    费，就会消失，因此任务是不会被重复执行的
+
+- 订阅模型-Fanout
+
+  ![](/Users/why/Desktop/github仓库(java面试)/Pictures/20181028164130603.png)
+
+  - Fanout，也称为广播。
+    在广播模式下，消息发送流程是这样的：
+
+    1） 可以有多个消费者
+    2） 每个消费者有自己的queue（队列）
+    3） 每个队列都要绑定到Exchange（交换机）
+    4） 生产者发送的消息，只能发送到交换机，交换机来决定要发给哪个队列，生产者无法决定。
+    5） 交换机把消息发送给绑定过的所有队列
+    6） 队列的消费者都能拿到消息。实现一条消息被多个消费者消费
+
+- 订阅模型-Direct:
+
+  ![](/Users/why/Desktop/github仓库(java面试)/Pictures/20181028164743990.png)
+
+  - 在Direct模型下，队列与交换机的绑定，不能是任意绑定了，而是要指定一个RoutingKey（路由key），消息的发送方在向Exchange发送消息时，也必须指定消息的routing key。
+
+    P：生产者，向Exchange发送消息，发送消息时，会指定一个routing key。
+
+    X：Exchange（交换机），接收生产者的消息，然后把消息递交给 与routing key完全匹配的队列
+
+    C1：消费者，其所在队列指定了需要routing key 为 error 的消息
+
+    C2：消费者，其所在队列指定了需要routing key 为 info、error、warning 的消息
+
+- 订阅模型-Topic
+
+  ![](/Users/why/Desktop/github仓库(java面试)/Pictures/20181028164920481.png)
+
+  - Topic 类型的 Exchange 与 Direct 相比，都是可以根据 RoutingKey 把消息路由到不同的队列。只不过 Topic 类型 Exchange 可以让队列在绑定 Routing key 的时候使用通配符！
+
+    通配符规则：#：匹配一个或多个词*：匹配不多不少恰好 1 个词
+    
+
+  3 、rabbitmq  AMQ协议是什么
+  ​	4、理解如何避免重复消费
+  ​	5、如何保证消息的可靠性投递
+  ​	6、如何保证消息消费的幂等性
+  ​	7、死信队列有没有了解过 
+  ​	8 、消息的发布确认机制有没有了解 
+  ​	9 、什么是延迟队列 le 、。。 b bitmq 集群有没有搭建镜像队列是什么
+  ​	分布式事务的实现方式有哪些？seata 可靠消息最终一致性需要
