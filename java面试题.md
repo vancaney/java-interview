@@ -219,10 +219,11 @@
   		1、首先hashmap方法接收到key和value时会根据put的key值进行hash运算的到key对应的hash值，是为了让key的hash值与其无符号右移					16位后的值进行运算（即将该hashcode的高位和地位全部参与到运算中，使计算出来的哈希值更加散列，减少哈希冲突）。
   		2、然后才会调用putVal方法，先将通过运算的到的哈希值与（数组长度-1）进行与运算得到一个数组的下标（二次散列，减少哈希冲突，下标					分布更加均匀）。
   		3、如果该下标是空的，那么直接把k,v封装成一个node对象存入此下标位置
-  		4、如果下标元素非空，说明此下标已经存在node对象，则判断该node是不是一个红黑树节点，如果是就将k,v封装成一个红黑树节点，并添加				 到红黑树上去，这个过程还会判断红黑树中是否存在相同的key，如果存在就会更新这个key的value
-  		5、如果这个小标位置上是个链表节点，那就将k，v封装成一个node对象插入到链表尾部。
-  		6、插入到链表后会判断当前链表长度是否超过8个，如果超过8个就将链表转化成红黑树（这个过程会判断key是否存在，如果存在就会更新					 value）
-  		7、最后会判断hashmap长度是否超过阈值，如果超过就要扩容。
+      4、如果下标不为空，会先判断key是否相等，如果相等就覆盖key对应value。
+  		5、如果key不同，则判断该node是不是一个红黑树节点，如果是就将k,v封装成一个红黑树节点，并添加到红黑树上去，这个过程还								会判断红黑树中是否存在相同的key，如果存在就会更新这个key的value。
+  		6、如果这个下标位置上不是红黑树节点，而是个链表节点，那就将k，v封装成一个node对象插入到链表尾部。这个过程还												会判断链表中是否存在相同的key，如果存在就会更新这个key的value。
+  		7、插入到链表后会判断当前链表长度是否超过8个，如果超过8个就将链表转化成红黑树。
+  		8、最后会判断hashmap长度是否超过阈值，如果超过就要扩容。
   		
 ```
 
@@ -662,7 +663,6 @@ SELECT NAME AS NAME,SUM(语文),SUM(数学),SUM(英语),SUM(总分) FROM (
 
     对事务的要求程度可以从大到小排序：mandatory / supports / required / requires_new / nested / not supported / never
 
-    
 
 ### 三 、redis
 
@@ -688,7 +688,7 @@ SELECT NAME AS NAME,SUM(语文),SUM(数学),SUM(英语),SUM(总分) FROM (
 | 缓存穿透                                                     |
 | :----------------------------------------------------------- |
 | ![](/Users/why/Desktop/github仓库(java面试)/Pictures/1586949401099.png) |
-| 问题出现的原因：查询的数据redis中没有，数据库中也没有。<br /><br />1.根据id查询时，如果id是自增，将id的最大值放到redis中，在查询数据库之前直接比较一下id。<br /><br />2.如果id不是整型，可以将id全部放到set中，在用户查询数据之前，可以先去set中查询一下是否有这个id。<br /><br />3.获取客户端的IP地址，可以将IP的访问添加权限。 |
+| 问题出现的原因：查询的数据在数据库中没有，自然在缓存中也不会有。这样就导致用户查询的时候，在缓存中找不到，每次都要去数据库再查询一遍，然后返回空，这就相当于进行了两次无用的查询。像这样请求就绕过缓存直接查数据库，做了两次无效的查询的现象<br />1.根据id查询时，如果id是自增，将id的最大值放到redis中，在查询数据库之前直接比较一下id。<br />2.如果id不是整型，可以将id全部放到set中，在用户查询数据之前，可以先去set中查询一下是否有这个id。<br />3.获取客户端的IP地址，可以将IP的访问添加权限。<br/>4.如果一个查询返回的数据为空，不管是数据不存在，还是系统故障，我们仍然把这个空结果进行缓存，但它的过期时间会很短，最长不超过五分钟。<br/> |
 
 | 缓存击穿                                                     |
 | ------------------------------------------------------------ |
@@ -1274,9 +1274,43 @@ Mybatis在处理${}时，就是把${}直接替换成变量的值；而Mybatis在
 
 #### 2 . 8 有没有了解过 mybatis 的一级缓存二级缓存是如何实现的？ 
 
+一级缓存：Mybatis在没有配置的默认情况下，它只开启一级缓存，一级缓存只是相对于同一个SqlSession而言。所以在参数和SQL完全一样的情况下，我们使用同一个SqlSession对象调用一个Mapper方法，往往只执行一次SQL，因为使用SelSession第一次查询后，MyBatis会将其放在缓存中，以后再查询的时候，如果没有声明需要刷新，并且缓存没有超时的情况下，SqlSession都会取出当前缓存的数据，而不会再次发送SQL到数据库；那什么时候会清空呢？我们执行添加,修改,删除操作的时候mybatis会自动清空一级缓存,准确的来说是我们执行commit()事务提交的时候就会清空。
 
+MyBatis的二级缓存是Application级别的缓存，SqlSessionFactory层面上的二级缓存默认是不开启的，二级缓存的开席需要进行配置，实现二级缓存的时候，MyBatis要求返回的POJO必须是可序列化的。 也就是要求实现Serializable接口，配置方法很简单，只需要在映射XML文件配置就可以开启缓存了，那如何开启呢？参考下方
+
+![](/Users/why/Desktop/github仓库(java面试)/Pictures/Mybatis缓存.png)
 
 #### 2 . 9 mybatis 中延时加载策略有没有了解过怎么实现的 ？
+
+[延时加载策略](https://blog.csdn.net/weixin_52851967/article/details/125246316?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522167248691816800182792709%2522%252C%2522scm%2522%253A%252220140713.130102334.pc%255Fall.%2522%257D&request_id=167248691816800182792709&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~first_rank_ecpm_v1~rank_v31_ecpm-2-125246316-null-null.142^v68^control,201^v4^add_ask,213^v2^t3_esquery_v2&utm_term=mybatis%20中延时加载策略&spm=1018.2226.3001.4187)
+
+延时加载就是在需要用到数据的时候进行加载，不需要用到数据的时候就不加载数据。延时加载也称懒加载。
+
+```xml
+<!-- 开启⼀对多 延迟加载 在association和collection标签中都有⼀个fetchType属性，通过修改它的值，可以修改局部的加载策略。-->
+<resultMap id="userMap" type="user">
+    <id column="id" property="id"></id>
+    <result column="username" property="username"></result>
+    <result column="password" property="password"></result>
+    <result column="birthday" property="birthday"></result>
+<!--
+fetchType="lazy" 懒加载策略
+fetchType="eager" ⽴即加载策略
+-->
+    <collection property="orderList" ofType="order" column="id"
+        select="com.lagou.dao.OrderMapper.findByUid" fetchType="lazy">
+    </collection>
+</resultMap>
+<select id="findAll" resultMap="userMap">
+    SELECT * FROM `user`
+</select>
+<!------------------------------------------------------------------------------------------------------------->
+<!--开启全局延迟加载功能  注意：局部的加载策略的优先级高于全局的加载策略-->
+<settings>
+    <setting name="lazyLoadingEnabled" value="true"/>
+</settings>
+
+```
 
 
 
@@ -1695,6 +1729,8 @@ spring是一个生态体系，包括spring framework，spring boot，spring clou
 
 #### 2 、什么是微服务？微服务和 springboot 之间的区别是什么 
 
+
+
 #### 3 、 springboot 有哪些常用的注解 
 
 @SpringBootApplication 声明soringboot项目
@@ -1725,7 +1761,7 @@ application.properties 优先级更好，会先读它，若它没有，再去读
 
 #### 6 、 springboot 常见的启动器（ starter )有哪些？如何自定义启动器
 
-***\*Spring Boot的常用starter\****
+***Spring Boot的常用starter***
 
 ​    ·spring-boot-starter-web
 
@@ -1767,7 +1803,7 @@ application.properties 优先级更好，会先读它，若它没有，再去读
 
 ​    -处理项目中使用ElasticSearch实现搜索功能
 
-​    ***\*SpringCloud服务发现框架的starter\****
+​    ***SpringCloud服务发现框架的starter***
 
 ​    ·ospring-cloud-starter-netflix-eureka-server
 
@@ -1777,7 +1813,7 @@ application.properties 优先级更好，会先读它，若它没有，再去读
 
 ​        -提示:如果你使用的“服务发现框架”不是Eureka，请更换为你使用的
 
-​    ***\*SpringCloud网关的starter\****
+​    ***SpringCloud网关的starter***
 
 ​    ·spring-cloud-starter-netflix-zuul
 
@@ -1859,11 +1895,32 @@ CAP理论是指在一个分布式系统中，一致性（Consistency）、可用
 
 （3）满足AP舍弃C（满足可用性、容错性的系统，对一致性要求低一些。），也就是满足可用性和容错性，舍弃一致性。这也就是意味着你的系统在并发访问的时候可能会出现数据不一致的情况。
 
-#### 4 、负载均衡的组件是什么负载均衡的配置策略有哪些 
+#### 4 、负载均衡的组件是什么？负载均衡的配置策略有哪些 
 
-​	5 、 feign openfeign 有没有了解过两者之间的区别是什么？ 
-​	6 、 5 pringoloud 中的容错组件有哪些服务降级如何实现服务熔断是什么断路器的原理是什么 
-​	7 、 springcloud 配置中心有哪些如何实现的
+Ribbon
+
+负载均衡策略：
+
+- 轮询策略
+- 权重策略
+- 随机策略
+- 最小连接数策略
+- hash策略
+
+#### 	5 、 feign openfeign 有没有了解过两者之间的区别是什么？ 
+
+- 底层都使用了Ribbon，去调用注册中心的服务。
+
+- feign是Netflix公司写的，是springCloud组件中的一个轻量级RESTful的HTTP服务客户端，是springCloud中的第一代负载均衡客户端。
+- openfeign是springCloud自己研发的，在Feign的基础上支持了springMVC的注解，是springCloud的第二代负载均衡客户端
+- Feigin本身不支持springMVC的注解，使用Feign的注解定义接口，调用这个接口，就可以调用服务注册中心的服务。
+- OpenFeign的@FeignClient可以解析springMVC的@RequestMapping注解下的接口，并通过动态代理的方式产生实现类，实现类中做负载均衡并调用其他服务。
+
+#### 6 、 springcloud 中的容错组件有哪些？服务降级如何实现？服务熔断是什么？断路器的原理是什么 
+
+
+
+#### 7 、 springcloud 配置中心有哪些？如何实现的
 
 ### 七、rabbitmq 
 
@@ -1938,11 +1995,40 @@ rabbitmq的作用：
     通配符规则：#：匹配一个或多个词*：匹配不多不少恰好 1 个词
     
 
-  3 、rabbitmq  AMQ协议是什么
-  ​	4、理解如何避免重复消费
-  ​	5、如何保证消息的可靠性投递
-  ​	6、如何保证消息消费的幂等性
-  ​	7、死信队列有没有了解过 
-  ​	8 、消息的发布确认机制有没有了解 
-  ​	9 、什么是延迟队列 le 、。。 b bitmq 集群有没有搭建镜像队列是什么
-  ​	分布式事务的实现方式有哪些？seata 可靠消息最终一致性需要
+  #### 3 、rabbitmq  AMQP协议是什么
+  
+  AMQP协议：高级消息队列协议，是一个网络协议。它支持符合要求的客户端应用和消息中间件代理中间进行通信。主要特征是面向消息，队列，路由，可靠性，安全。
+  
+  说简单点就是在异步通信中，消息不会立刻到达接收方，而是会放到一个容器中，当满足一定的条件之后，消息会被容器发送给接收方，这个容器即消息队列（MQ），而完成这个功能需要双方和容器以及其中的各个组件遵守统一的约定和规则，AMQP就是这样一种协议，消息发送与接收双方遵守这个协议可以实现异步通信，这个协议同时规定了消息的格式和工作方式。
+  
+  #### 4、如何保证消息的可靠性投递
+  
+  
+  
+  #### 5、如何保证消息消费的幂等性（理解如何避免重复消费）
+  
+  幂等性:就是不重复消费，结合本地消息去重表 + ack手动确认机制，消费前去数据库去重表查看状态，如果消费过就直接不消费后直接执行手动ack消息确认，如果没消费就先消费，消费后，update去重表中的消息消费状态，再手动ack确认消息给队列。
+  
+  #### 6、死信队列有没有了解过 
+  
+  死信队列，英文缩写：DLX  。Dead Letter Exchange（死信交换机），
+  当消息消费失败后成为Dead message后，可以被重新发送到另一个交换机，这个交换机就是DLX。
+  成为死信队列的3种情况：
+  1. 队列消息长度到达限制；
+  2. 消费者拒接消费消息， 
+  3. 原队列存在消息过期设置，消息到达超时时间未被消费
+  所以基本死信队列存放是不要的被废弃或被放弃的不重要的消息，处理起来直接把队列删掉就可以了。
+  
+  #### 7、消息的发布确认机制有没有了解 ？
+  
+  
+  
+  #### 8 、什么是延迟队列？
+  
+  延迟队列就是给队列设置了一个过期时间，延迟队列一般都是配合TTL（队列消息的有效期，类似与redis的有效期）和死信队列来实现的，在指定时间点没有消费掉的消息过期了就会主动把消息放入死信队列。典型的场景就是处理关闭超时订单。
+  
+  #### 9、rabbitmq 集群有没有搭建？镜像队列是什么？
+  
+  
+  
+  #### 10、分布式事务的实现方式有哪些？seata 可靠消息最终一致性需要
