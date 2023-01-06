@@ -432,7 +432,7 @@ Integer.class在装载时，其内部类型IntegerCache的static块即开始执�
 
 #### 	( 7 )什么是对象的浅拷贝？什么是深拷贝？浅拷贝和深拷贝之间的区别？ 
 
-- 浅拷贝：是会将对象的每个属性进行依次复制，，但是当对象的属性是引用类型时，实际上复制的是其引用，当引用指向的的值改变时也会跟着改变。
+- 浅拷贝：是会将对象的每个属性进行依次复制，但是当对象的属性是引用类型时，实际上复制的是其引用，当引用指向的的值改变时也会跟着改变。
 
 - 深拷贝：复制变量值，对于引用数据，则递归至基本类型后，再复制。深拷贝后的对象和原来的对象是完全隔离的，互不影响，对一个对象的修改并不会影响到另一个对象。
 
@@ -523,7 +523,7 @@ explain：作用是获取MYSQL如何执行select语句的信息，包括在selec
 
 #### 	(4 )索引失效的情况有哪些？举例说明。 
 
-1. 对索引中所有列都制定具体值（如果字段顺序发生改变，也是没有问题的）
+1. 对索引中所有列都制定具体值（如果 字段顺序发生改变，也是没有问题的）
 2. 最左前缀法则：如果索引了多列，就要遵循最左前列法则。指的是查询从索引的最左前列开始，且不跳过索引中的列。如果符合最左前缀法则，但是出现跳过了某一列的，只有最左列索引生效。
 3. 范围查询右边的列，不能使用索引。
 4. 不要在索引列上做运算操作，索引将失效。
@@ -531,7 +531,7 @@ explain：作用是获取MYSQL如何执行select语句的信息，包括在selec
 6. 尽量使用覆盖索引，避免select *，如果查询列超出索引列，也会降低性能。
 7. 用or分割开的条件，如果or前的列有索引，后面的没有索引，那么涉及到的索引都会失效
 8. 以%开头的模糊查询，索引失效，如果只是在尾部模糊查询，则不会失效
-9. is null , is not null有时索引失效。如果有一个address字段中所有的数据都不为null， 那么使用is null索引就不会失效；使用is not null索引就会失效，因为mysql解析器会认为走全表的效率更高。
+9. is null , is not null有时索引失效。如果有一个address字段中所有的数据都不为null， 那么使用is null索引就不会失效；使用is not null索引就会失效，因为mysql解析器会认为走全表的效率更高。（为指定字段设置了非空(not null)，在使用`is null`或`is not null`时是不走索引的。而列定义允许为空，查询中也能使用到索引的。）
 10. in走索引， not in不走索引
 11. 尽量使用复合索引，少用单列索引
 12. mysql评估走全表比走索引更快，就不会走索引
@@ -572,17 +572,17 @@ InnoDB默认支持行级锁。
 
 ```mysql
 SELECT  NAME AS 姓名,
-SUM(CASE WHEN SUBJECT = '语文' THEN fraction END) AS 语文,
-SUM(CASE WHEN SUBJECT = '数学' THEN fraction END) AS 数学,
-SUM(CASE WHEN SUBJECT = '英语' THEN fraction END) AS 英语,
+SUM(CASE WHEN SUBJECT = '语文' THEN fraction ELSE 0 END) AS 语文,
+SUM(CASE WHEN SUBJECT = '数学' THEN fraction ELSE 0 END) AS 数学,
+SUM(CASE WHEN SUBJECT = '英语' THEN fraction ELSE 0 END) AS 英语,
 SUM(fraction)AS 总分
 FROM t_score GROUP BY NAME 
 UNION ALL
 SELECT NAME AS NAME,SUM(语文),SUM(数学),SUM(英语),SUM(总分) FROM (
   SELECT 'total' AS NAME,
-	SUM(CASE WHEN SUBJECT = '语文' THEN fraction END) AS 语文,
-	SUM(CASE WHEN SUBJECT = '数学' THEN fraction END) AS 数学,
-	SUM(CASE WHEN SUBJECT = '英语' THEN fraction END) AS 英语,
+	SUM(CASE WHEN SUBJECT = '语文' THEN fraction ELSE 0 END) AS 语文,
+	SUM(CASE WHEN SUBJECT = '数学' THEN fraction ELSE 0 END) AS 数学,
+	SUM(CASE WHEN SUBJECT = '英语' THEN fraction ELSE 0 END) AS 英语,
 	SUM(fraction) AS 总分
 	FROM t_score GROUP BY NAME 
 ) AS t GROUP BY NAME
@@ -623,6 +623,15 @@ SELECT NAME AS NAME,SUM(语文),SUM(数学),SUM(英语),SUM(总分) FROM (
 
 #### 	(10)mysql 的事务,什么是事务？事务的特性？事务的隔离级别？事务的传播行为？
 
+```mysql
+--mysql8.X查看全局事务语句
+SELECT @@global.TRANSACTION_isolation;
+--mysql8.X查看局部事务语句
+SELECT @@session.TRANSACTION_isolation;
+--修改事务隔离级别
+SET [SESSION | GLOBAL] TRANSACTION ISOLATION LEVEL {READ UNCOMMITTED | READ COMMITTED | REPEATABLE READ | SERIALIZABLE}
+```
+
 - 事务是一个原子操作。是一个最小执行单元。可以由一个或多个sql语句组成，在同一个事务中，所有的sql语句都执行成功时，整个事务成功，有一个sql执行失败，整个事务都执行失败。
 
 - 事务的特性：
@@ -633,6 +642,8 @@ SELECT NAME AS NAME,SUM(语文),SUM(数学),SUM(英语),SUM(总分) FROM (
   4. durability(持久性)：一个事务操作完成对数据库的影响是永久的。
 
 - 事务的隔离级别：
+
+  [事务的隔离级别](https://knife.blog.csdn.net/article/details/121218149?spm=1001.2101.3001.6661.1&utm_medium=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1-121218149-blog-112055945.pc_relevant_default&depth_1-utm_source=distribute.pc_relevant_t0.none-task-blog-2%7Edefault%7ECTRLIST%7ERate-1-121218149-blog-112055945.pc_relevant_default&utm_relevant_index=1)
 
   | 事务隔离级别                 | 脏读 | 不可重复读 | 幻读 |
   | ---------------------------- | ---- | ---------- | ---- |
@@ -704,6 +715,11 @@ SELECT NAME AS NAME,SUM(语文),SUM(数学),SUM(英语),SUM(总分) FROM (
 
 - RDB：redis的默认的持久化机制。
 
+  | RDB                                                          |
+  | :----------------------------------------------------------- |
+  | ![](/Users/why/Desktop/github仓库(java面试)/Pictures/11adda4770df47c6befdd4f3e504de7f.png) |
+  | RDB是Redis默认的持久化方式。按照一定的时间将内存的数据以快照的形式保存到硬盘中，对应产生的数据文件为dump.rdb。通过配置文件中的save参数来定义快照的周期；记录Redis数据库的所有键值对，在某个时间点将数据写入一个临时文件持久化结束后，用这个临时文件替换上次持久化的文件达到数据恢复；<br/>优点：<br/>1.只有一个文件 dump.rdb，方便持久化；<br/>2.容灾性好，一个文件可以保存到安全的磁盘；<br/>3.性能最大化，fork子进程来完成写操作，让主进程继续处理命令，所以是IO最大化。使用单独子进程来进行持久化，主进程不会进行任何 IO 操作，保证了Redis的高性能；<br/>4.相对于数据集大时，比 AOF 的启动效率更高；<br/>缺点：<br/>1.数据安全性低；<br/>2.RDB 是间隔一段时间进行持久化，如果在持久化时Redis发生故障，会发生数据丢失。所以这种方式更适合数据要求不严谨的时候； |
+
   - RDB持久化文件，速度比较快，而且储存的是一个二进制文件，传输起来方便。
 
   - RDB持久化的时机：变化的越多，保存的越快。
@@ -717,6 +733,11 @@ SELECT NAME AS NAME,SUM(语文),SUM(数学),SUM(英语),SUM(总分) FROM (
   - RDB无法保证数据的安全。
 
 - AOF：AOF持久化机制默认是关闭的，redis官方推荐同事开启RDB和AOF持久化，更安全，避免数据丢失。
+
+  | AOF                                                          |
+  | ------------------------------------------------------------ |
+  | ![](/Users/why/Desktop/github仓库(java面试)/Pictures/c01fb1d3f5464bed87a6377b02c84af5.png) |
+  | AOF持久化(即Append Only File持久化)，是将Redis执行的每次写命令记录到单独的日志文件中，当重启Redis会重新将持久化的日志中文件恢复数据。**当两种方式同时开启时数据恢复Redis会优先选择AOF恢复**；<br/>优点：<br/>1.数据安全，AOF持久化可以配置 appendfsync 属性，有always属性，每进行一次命令操作就记录到AOF文件中一次；<br/>2.通过append模式写文件，即使中途服务器宕机，可以通过 redis-check-aof 工具解决数据一致性问题；<br/>3.AOF机制的rewrite模式。AOF文件没被 rewrite 之前（文件过大时会对命令 进行合并重写），可以删除其中的某些命令（比如误操作的 flushall）；<br/>缺点：<br/>1.AOF文件比RDB文件大，且恢复速度慢；<br/>2.数据集大的时候，比RDB启动效率低； |
 
   - AOF存的是执行过的增删改的命令，而不是数据，在每次执行命令之后都可以存储一次。
 
@@ -763,15 +784,8 @@ SELECT NAME AS NAME,SUM(语文),SUM(数学),SUM(英语),SUM(总分) FROM (
   #结束事务，并清除commands队列
   discard
   #redis的一次事务操作，该成功的成功，该失败的失败。即redis的事务不能保证原子性。
-  #redis开启事务，执行一些列的命令，但是命令不会立即执行，而是会放在一个队列中，如果执行了exec命令，那么队列中的命令会全部执行，如果#discard，那么队列中的命令会全部取消。
+  #redis开启事务，执行一些列的命令，但是命令不会立即执行，而是会放在一个队列中，如果执行了exec命令，那么队列中的命令会全部执行，如果discard，那么队列中的命令会全部取消。
   ```
-
-- 取消事务的区别：
-
-  - MySQL事务的回滚(rollback)是指一次事务中，如果一个sql执行出错，那么所有的sql全部执行失败，全部sql执行成功整个事务才会成功。执行rollback后所有语句造成的影响消失。
-  - Redis的discard只是结束本次事务，正确的命令造成的影响仍然存在。即：
-    - 如果在一个事务中的命令出现错误，那么所有的命令都不会执行。
-    - 如果在一个事务中出现运行错误，那么正确的命令会被执行。
 
 ​	[redis 事务和 mysql 事务的区别](https://blog.csdn.net/weixin_44685869/article/details/104420566?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522167072687516800182715633%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=167072687516800182715633&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~sobaiduend~default-1-104420566-null-null.142^v68^control,201^v4^add_ask,213^v2^t3_esquery_v2&utm_term=redis事务和mysql事务有什么区别&spm=1018.2226.3001.4187)
 
@@ -875,6 +889,12 @@ top
 #linux查看日志信息 
 tail
 cat
+#定位可执行文件、源代码文件、帮助文件在文件系统中的位置。这些文件的属性应属于原始代码，二进制文件，或是帮助文件。(只能找到对应的文件名，不能找到文件所在的路径)
+whereis
+#设置别名
+alias
+#查找文件(可以找到文件对应的路径)
+find
 ```
 
 #### (6)linux的文件系统有没有了解过
@@ -902,7 +922,7 @@ inux采用的是树形结构。linux中没有盘符，最上层目录是根目�
 #### 1 . 1 spring 的核心思想有哪些？ ioc aop 
 
 - IOC(Inverse Of Controll)：控制反转。创建对象的控制权转移给spring框架进行管理，并由spring根据配置文件去创建实例和和管理各个实例的依赖关系。对象与对象之间解耦合，也利于功能的复用。
-- AOP(Aspect Oriented Programming)：面向切面。讲那些影响了多个类的公共行为或逻辑封装到一个可重用模块，这个模块被称为切面“Aspect”，减少系统中的重复代码，降低了模块之间的耦合度，提高系统的可维护性。
+- AOP(Aspect Oriented Programming)：面向切面。将那些影响了多个类的公共行为或逻辑封装到一个可重用模块，这个模块被称为切面“Aspect”，减少系统中的重复代码，降低了模块之间的耦合度，提高系统的可维护性。
 
 #### 1 . 2 在 spring 中管理 bean 的方式有哪些？ 
 
@@ -1019,7 +1039,7 @@ Spring 将 name 属性解析为 Bean 实例名称，type 属性解析为 Bean �
 - 两者不同点：
   - @Resource是Java自身的注解，@Autowired是spring的注解
   - @Resource有两个重要的属性，name和type。如果name属性有值，则使用byName的自动注入策略，将值作为需要注入bean的名字；如果type有值，则使用byType自动注入策略，将值作为需要注入bean的类型。如果两者都不指定，这时将使用反射机制，使用byName的自动注入策略。即：@Resource默认按照名称进行匹配，名称可以通过name属性进行指定，如果没有设置name属性，，当注解写在字段上时，默认取字段名，按照名称查找，当找不到与名称匹配的bean时才会按照类型进行装配，需要注意的是，如果name属性指定了值，就只会按照名称进行匹配。
-  - @Autowired是 spring的注解，此注解只根据type进行注入，不回去匹配name，但如果根据type无法辨别注入对象时，就需要配合@Qualifier注解使用。
+  - @Autowired是 spring的注解，此注解只根据type进行注入，不会去匹配name，但如果根据type无法辨别注入对象时，就需要配合@Qualifier注解使用。
 
 #### 1 . 6 什么是 aop ？spring 是如何整合 aop 的？你在项目中是如何使用 aop 的？
 
@@ -1031,7 +1051,7 @@ Spring 将 name 属性解析为 Bean 实例名称，type 属性解析为 Bean �
   - 编程式事务管理：侵入到了业务代码里面，但是提供了更加详细的事务管理。编程式事务使用 TransactionTemplate 或者直接使用底层的 PlatformTransactionManager。对于编程式事务管理，Spring 推荐使用 TransactionTemplate。
   - 声明式事务管理：基于AOP，既能管理事务，又不影响业务代码。本质是对方法前后进行拦截，然后在目标方法开始之前创建或者加入一个事务，在目标方法执行完后根据执行情况提交或者回滚事务。最大的优点就是不需要通过编程的方式管理事务，这样就不需要在业务逻辑代码中掺杂事务管理的代码，只需在配置文件中做相关的事务规则声明(或基于@Transactional的方式)，便可以将事务规则应用到业务逻辑中。
 
-#### 1 . 8 spoing 中的代理思想 jdk 动态代理和 cglib 字节码代理的区别 	
+#### 1 . 8 spring 中的代理思想 jdk 动态代理和 cglib 字节码代理的区别 	
 
 - 两者都可以实现产生代理对象
 - JDK动态代理是Java自带的，cglib是第三方的
